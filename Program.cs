@@ -6,32 +6,15 @@ using Distribucion.Infraestructura.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1️⃣ Intentar usar variables de Railway (PGHOST, PGUSER, etc)
-string? host = Environment.GetEnvironmentVariable("PGHOST");
-string? port = Environment.GetEnvironmentVariable("PGPORT");
-string? user = Environment.GetEnvironmentVariable("PGUSER");
-string? pass = Environment.GetEnvironmentVariable("PGPASSWORD");
-string? dbname = Environment.GetEnvironmentVariable("PGDATABASE");
+// Obtenemos la conexión desde Railway tal cual
+var connectionString =
+    Environment.GetEnvironmentVariable("DATABASE_URL")
+    ?? builder.Configuration.GetConnectionString("DistribucionContext");
 
-string connectionString;
+if (string.IsNullOrEmpty(connectionString))
+    throw new Exception("No se encontró cadena de conexión en Railway ni en appsettings.json.");
 
-if (!string.IsNullOrEmpty(host))
-{
-    // 2️⃣ Railway nos dio las variables correctamente
-    connectionString =
-        $"Host={host};Port={port};Database={dbname};Username={user};Password={pass};SSL Mode=Require;Trust Server Certificate=True";
-}
-else
-{
-    // 3️⃣ Modo local
-    connectionString = builder.Configuration.GetConnectionString("DistribucionContext")
-                       ?? throw new Exception("No se encontró cadena de conexión.");
-}
-
-Console.WriteLine("Conectando a PostgreSQL con:");
-Console.WriteLine(connectionString);
-
-// Registrar DbContext
+// Registrar DbContext con Npgsql
 builder.Services.AddDbContext<DistribucionContext>(options =>
     options.UseNpgsql(connectionString));
 
@@ -44,7 +27,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Controllers, Swagger y HttpClient
+// Controllers, Swagger, HttpClient
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -56,22 +39,23 @@ builder.Services.AddScoped<IDetalleEnvioRepositorio, DetalleEnvioRepositorio>();
 
 var app = builder.Build();
 
-// Aplicar migraciones
+// Aplicar migraciones al iniciar
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DistribucionContext>();
     try
     {
+        Console.WriteLine("Aplicando migraciones...");
         db.Database.Migrate();
         Console.WriteLine("Migraciones aplicadas correctamente.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine("Error aplicando migraciones: " + ex.Message);
+        Console.WriteLine("ERROR aplicando migraciones: " + ex.Message);
+        Console.WriteLine(ex.StackTrace);
     }
 }
 
-// Middleware
 app.UseCors("myApp");
 app.UseAuthorization();
 app.MapControllers();
