@@ -6,45 +6,41 @@ using Distribucion.Infraestructura.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 🔥 Convierte DATABASE_URL de Railway a cadena válida Npgsql
-string ConvertToNpgsqlConnectionString(string databaseUrl)
-{
-    var uri = new Uri(databaseUrl);
-    var userInfo = uri.UserInfo.Split(':');
+// 1️⃣ Intentar usar variables de Railway (PGHOST, PGUSER, etc)
+string? host = Environment.GetEnvironmentVariable("PGHOST");
+string? port = Environment.GetEnvironmentVariable("PGPORT");
+string? user = Environment.GetEnvironmentVariable("PGUSER");
+string? pass = Environment.GetEnvironmentVariable("PGPASSWORD");
+string? dbname = Environment.GetEnvironmentVariable("PGDATABASE");
 
-    return $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.Trim('/')};" +
-           $"Username={userInfo[0]};Password={userInfo[1]};" +
-           $"SSL Mode=Require;Trust Server Certificate=true";
-}
-
-// 🔥 Obtener la cadena de conexión desde Railway o appsettings.json
-var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 string connectionString;
 
-if (!string.IsNullOrEmpty(rawUrl))
+if (!string.IsNullOrEmpty(host))
 {
-    connectionString = ConvertToNpgsqlConnectionString(rawUrl);
+    // 2️⃣ Railway nos dio las variables correctamente
+    connectionString =
+        $"Host={host};Port={port};Database={dbname};Username={user};Password={pass};SSL Mode=Require;Trust Server Certificate=True";
 }
 else
 {
-    connectionString = builder.Configuration.GetConnectionString("DistribucionContext");
+    // 3️⃣ Modo local
+    connectionString = builder.Configuration.GetConnectionString("DistribucionContext")
+                       ?? throw new Exception("No se encontró cadena de conexión.");
 }
 
-// 🔥 Registrar DbContext con Npgsql
+Console.WriteLine("Conectando a PostgreSQL con:");
+Console.WriteLine(connectionString);
+
+// Registrar DbContext
 builder.Services.AddDbContext<DistribucionContext>(options =>
-    options.UseNpgsql(connectionString, npgsqlOptions =>
-    {
-        npgsqlOptions.EnableRetryOnFailure();
-    }));
+    options.UseNpgsql(connectionString));
 
 // CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("myApp", policyBuilder =>
+    options.AddPolicy("myApp", policy =>
     {
-        policyBuilder.AllowAnyOrigin()
-                     .AllowAnyHeader()
-                     .AllowAnyMethod();
+        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
     });
 });
 
@@ -60,7 +56,7 @@ builder.Services.AddScoped<IDetalleEnvioRepositorio, DetalleEnvioRepositorio>();
 
 var app = builder.Build();
 
-// 🔥 Aplicar migraciones AUTOMÁTICAMENTE
+// Aplicar migraciones
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DistribucionContext>();
