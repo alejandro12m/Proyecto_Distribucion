@@ -6,17 +6,18 @@ using Distribucion.Infraestructura.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Obtenemos la conexión desde Railway tal cual
-var connectionString =
-    Environment.GetEnvironmentVariable("DATABASE_URL")
-    ?? builder.Configuration.GetConnectionString("DistribucionContext");
+// 1️⃣ Leemos la variable que Railway inyecta: DATABASE_URL
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
-if (string.IsNullOrEmpty(connectionString))
-    throw new Exception("No se encontró cadena de conexión en Railway ni en appsettings.json.");
+// 2️⃣ Si no existe, tomamos la conexión interna directa (Railway internal)
+if (string.IsNullOrEmpty(databaseUrl))
+{
+    databaseUrl = "Host=postgres.railway.internal;Port=5432;Database=railway;Username=postgres;Password=foqXkDDumQSNWvhKHRLOTFpfhxeGuGok;SSL Mode=Require;Trust Server Certificate=true";
+}
 
-// Registrar DbContext con Npgsql
+// 3️⃣ Registrar DbContext
 builder.Services.AddDbContext<DistribucionContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(databaseUrl));
 
 // CORS
 builder.Services.AddCors(options =>
@@ -27,7 +28,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Controllers, Swagger, HttpClient
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -39,13 +39,12 @@ builder.Services.AddScoped<IDetalleEnvioRepositorio, DetalleEnvioRepositorio>();
 
 var app = builder.Build();
 
-// Aplicar migraciones al iniciar
+// 4️⃣ Migraciones automáticas
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DistribucionContext>();
     try
     {
-        Console.WriteLine("Aplicando migraciones...");
         db.Database.Migrate();
         Console.WriteLine("Migraciones aplicadas correctamente.");
     }
