@@ -10,6 +10,15 @@ builder.Services.AddDbContext<DistribucionContext>(options =>
     options.UseNpgsql(url));
 
 // Add services to the container.
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("myApp", policibuilder =>
+    {
+        policibuilder.AllowAnyOrigin();
+        policibuilder.AllowAnyHeader();
+        policibuilder.AllowAnyMethod();
+    });
+});
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
