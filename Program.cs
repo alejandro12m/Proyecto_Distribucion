@@ -53,11 +53,9 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Swagger solo en desarrollo
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
+
 
 // Middleware
 app.UseCors("myApp");
