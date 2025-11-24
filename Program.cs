@@ -11,7 +11,7 @@ builder.WebHost.UseUrls($"http://*:{port}");
 
 // Leer cadena de conexión desde variable de entorno (más seguro)
 var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-    ?? "Host=postgres.railway.internal;Port=5432;Database=railway;Username=postgres;Password=foqXkDDumQSNWvhKHRLOTFpfhxeGuGok;SSL Mode=Require;Trust Server Certificate=true";
+    ?? "Host=yamanote.proxy.rlwy.net;Port=5432;Database=Distribucion;Username=postgres;Password=foqXkDDumQSNWvhKHRLOTFpfhxeGuGok;SSL Mode=Require;Trust Server Certificate=true";
 
 // Registrar DbContext con Npgsql
 builder.Services.AddDbContext<DistribucionContext>(options =>
