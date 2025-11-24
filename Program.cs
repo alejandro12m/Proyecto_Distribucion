@@ -6,31 +6,23 @@ using Distribucion.Infraestructura.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Obtener cadena de conexión desde Railway
-var connectionString =
-    Environment.GetEnvironmentVariable("CONNECTION_STRING")
-    ?? builder.Configuration.GetConnectionString("DistribucionContext");
+// 🚀 Cadena de conexión interna de Railway (host interno)
+var connectionString = "Host=postgres.railway.internal;Port=5432;Database=railway;Username=postgres;Password=foqXkDDumQSNWvhKHRLOTFpfhxeGuGok;SSL Mode=Require;Trust Server Certificate=true";
 
-// Configurar DbContext
+// Registrar DbContext con Npgsql
 builder.Services.AddDbContext<DistribucionContext>(options =>
-    options.UseNpgsql(connectionString, npgsqlOptions =>
-    {
-        npgsqlOptions.EnableRetryOnFailure();
-    })
-);
+    options.UseNpgsql(connectionString));
 
 // CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("myApp", policibuilder =>
+    options.AddPolicy("myApp", policy =>
     {
-        policibuilder.AllowAnyOrigin();
-        policibuilder.AllowAnyHeader();
-        policibuilder.AllowAnyMethod();
+        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
     });
 });
 
-// Swagger, Controllers, HttpClient
+// Controllers, Swagger y HttpClient
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -49,25 +41,26 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<DistribucionContext>();
     try
     {
+        Console.WriteLine("Aplicando migraciones...");
         db.Database.Migrate();
+        Console.WriteLine("Migraciones aplicadas correctamente.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine("Error aplicando migraciones: " + ex.Message);
+        Console.WriteLine("ERROR aplicando migraciones: " + ex.Message);
+        Console.WriteLine(ex.StackTrace);
     }
 }
 
-// Configurar puerto de Railway
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-app.Urls.Add($"http://0.0.0.0:{port}");
+// Swagger solo en desarrollo
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-// Swagger SIEMPRE activado
-app.UseSwagger();
-app.UseSwaggerUI();
-
-// Middleware 
+// Middleware
 app.UseCors("myApp");
 app.UseAuthorization();
 app.MapControllers();
-
 app.Run();
