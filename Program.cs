@@ -6,17 +6,17 @@ using Distribucion.Infraestructura.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 // Puerto Railway
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+var port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
 builder.WebHost.UseUrls($"http://*:{port}");
 
-// 🔥 Cadena de conexión fija a tu host real
-var connectionString = "Host=yamanote.proxy.rlwy.net;Port=5432;Database=railway;Username=postgres;Password=foqXkDDumQSNWvhKHRLOTFpfhxeGuGok;SSL Mode=Require;Trust Server Certificate=true";
+// 🔥 Cadena de conexión correcta con puerto de Railway
+var connectionString = "Host=yamanote.proxy.rlwy.net;Port=18205;Database=railway;Username=postgres;Password=foqXkDDumQSNWvhKHRLOTFpfhxeGuGok;SSL Mode=Require;Trust Server Certificate=true";
 
 // Configurar DbContext con Npgsql
 builder.Services.AddDbContext<DistribucionContext>(options =>
     options.UseNpgsql(connectionString, npgsqlOptions =>
     {
-        npgsqlOptions.EnableRetryOnFailure(); // reintenta si falla la conexión
+        npgsqlOptions.EnableRetryOnFailure();
     }));
 
 // Configurar CORS
@@ -36,7 +36,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
 
-// Inyectar repositorios
+// Repositorios
 builder.Services.AddScoped<IEnvioRepositorio, EnvioRepositorio>();
 builder.Services.AddScoped<IDetalleEnvioRepositorio, DetalleEnvioRepositorio>();
 builder.Services.AddScoped<ICamionRepositorio, CamionRepositorio>();
@@ -50,7 +50,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         Console.WriteLine("Aplicando migraciones...");
-        db.Database.Migrate(); // Crea las tablas si no existen
+        db.Database.Migrate();
         Console.WriteLine("Migraciones aplicadas correctamente.");
     }
     catch (Exception ex)
