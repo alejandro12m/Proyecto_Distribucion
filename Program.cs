@@ -6,8 +6,15 @@ using Distribucion.Infraestructura.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Obtener cadena de conexión desde appsettings.json
-var connectionString = builder.Configuration.GetConnectionString("DistribucionContext");
+// Obtener cadena de conexión desde variable de entorno o appsettings.json
+var connectionString =
+    Environment.GetEnvironmentVariable("DATABASE_URL")
+    ?? builder.Configuration.GetConnectionString("DistribucionContext");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException("No se encontró la cadena de conexión.");
+}
 
 // Registrar DbContext
 builder.Services.AddDbContext<DistribucionContext>(options =>
