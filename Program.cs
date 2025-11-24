@@ -53,10 +53,11 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("Error aplicando migraciones: " + ex.Message);
     }
 }
-
-app.UseSwagger();
-app.UseSwaggerUI();
-
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 // Middleware
 app.UseCors("myApp");
 app.UseAuthorization();
