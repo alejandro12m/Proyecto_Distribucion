@@ -6,17 +6,20 @@ using Distribucion.Infraestructura.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-                       ?? builder.Configuration.GetConnectionString("DistribucionContext");
+// Obtener cadena de conexión desde Railway
+var connectionString =
+    Environment.GetEnvironmentVariable("CONNECTION_STRING")
+    ?? builder.Configuration.GetConnectionString("DistribucionContext");
 
-// Configurar DbContext con Npgsql
+// Configurar DbContext
 builder.Services.AddDbContext<DistribucionContext>(options =>
     options.UseNpgsql(connectionString, npgsqlOptions =>
     {
-        npgsqlOptions.EnableRetryOnFailure(); // reintenta si falla la conexión
-    }));
+        npgsqlOptions.EnableRetryOnFailure();
+    })
+);
 
-// Configurar CORS
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("myApp", policibuilder =>
@@ -27,37 +30,41 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Controllers, Swagger y HttpClient
+// Swagger, Controllers, HttpClient
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
 
-// Inyectar repositorios
+// Repositorios
 builder.Services.AddScoped<IEnvioRepositorio, EnvioRepositorio>();
 builder.Services.AddScoped<IDetalleEnvioRepositorio, DetalleEnvioRepositorio>();
 builder.Services.AddScoped<ICamionRepositorio, CamionRepositorio>();
 
 var app = builder.Build();
 
-// Aplicar migraciones al iniciar
+// Aplicar migraciones automáticamente
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DistribucionContext>();
     try
     {
-        db.Database.Migrate(); // Crea las tablas si no existen
+        db.Database.Migrate();
     }
     catch (Exception ex)
     {
         Console.WriteLine("Error aplicando migraciones: " + ex.Message);
     }
 }
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+
+// Configurar puerto de Railway
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Urls.Add($"http://0.0.0.0:{port}");
+
+// Swagger SIEMPRE activado
+app.UseSwagger();
+app.UseSwaggerUI();
+
 // Middleware
 app.UseCors("myApp");
 app.UseAuthorization();
