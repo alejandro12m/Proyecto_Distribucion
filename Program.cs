@@ -1,13 +1,16 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Distribucion.Core.Interfaces;
 using Distribucion.Infraestructura.Repositorio;
 using Distribucion.Infraestructura.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-                       ?? builder.Configuration.GetConnectionString("DistribucionContext");
+// Puerto Railway
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://*:{port}");
+
+// 🔥 Cadena de conexión fija a tu host real
+var connectionString = "Host=yamanote.proxy.rlwy.net;Port=5432;Database=Distribucion;Username=postgres;Password=foqXkDDumQSNWvhKHRLOTFpfhxeGuGok;SSL Mode=Require;Trust Server Certificate=true";
 
 // Configurar DbContext con Npgsql
 builder.Services.AddDbContext<DistribucionContext>(options =>
@@ -46,14 +49,18 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<DistribucionContext>();
     try
     {
+        Console.WriteLine("Aplicando migraciones...");
         db.Database.Migrate(); // Crea las tablas si no existen
+        Console.WriteLine("Migraciones aplicadas correctamente.");
     }
     catch (Exception ex)
     {
         Console.WriteLine("Error aplicando migraciones: " + ex.Message);
+        Console.WriteLine(ex.StackTrace);
     }
 }
 
+// Habilitar Swagger siempre
 app.UseSwagger();
 app.UseSwaggerUI();
 
