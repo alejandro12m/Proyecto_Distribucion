@@ -7,7 +7,7 @@ using Distribucion.Infraestructura.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-                       ?? builder.Configuration.GetConnectionString("DistribucionContext");
+                       ?? "Host=yamanote.proxy.rlwy.net;Port=5432;Database=Distribucion;Username=postgres;Password=foqXkDDumQSNWvhKHRLOTFpfhxeGuGok;SSL Mode=Require;Trust Server Certificate=true";
 
 // Configurar DbContext con Npgsql
 builder.Services.AddDbContext<DistribucionContext>(options =>
